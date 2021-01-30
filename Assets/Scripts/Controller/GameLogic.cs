@@ -11,8 +11,19 @@ public class GameLogic : MonoBehaviour
     [Space]
     [SerializeField] List<Cell> cells;
 
+    [SerializeField] private float simulationSpeed = .2f;
+    
+
+    [SerializeField] private LineRenderer line;
+
     private List<int> _values = new List<int>();
-    private List<List<Cell>> _map;
+    private List<List<Cell>> _listMap;
+    private readonly Dictionary<Vector2Int, Cell> _map = new Dictionary<Vector2Int, Cell>();
+    
+    public GridView GridView => gridView;
+
+    public float SimulationSpeed => simulationSpeed;
+
 
     private static GameLogic _instance;
     public static GameLogic Instance
@@ -27,52 +38,63 @@ public class GameLogic : MonoBehaviour
         }
     }
 
-    private Cell selected;
+    private Cell _selectedCell;
+    private DFS _dfs;
 
     public void SelectCell(Cell cell)
     {
-        Debug.Log(cell.ID);
-        if(selected == null)
+
+        //Debug.Log(cell.ID);
+        if (_selectedCell == null)
         {
-            selected = cell;
+            _selectedCell = cell;
+            _selectedCell.Highlight(true);
+            //Debug.Log($"Selected x[{_selectedCell.Position.x}],y[{_selectedCell.Position.y}] ");
         }
         else
         {
-            Debug.Log($"Selcted x[{selected.Position.x}],y[{selected.Position.y}] ");
-            Debug.Log($"Cell x[{cell.Position.x}],y[{cell.Position.y}] ");
-            if (cell == selected || cell.ID != selected.ID)
+            //Debug.Log($"Selected x[{_selectedCell.Position.x}],y[{_selectedCell.Position.y}] ");
+            //Debug.Log($"Cell x[{cell.Position.x}],y[{cell.Position.y}] ");
+            
+            if (cell == _selectedCell || cell.ID != _selectedCell.ID)
             {
-                Debug.LogError("id not match or you selected the same cell");
-                selected = null;
-                return;
-            }
-            if ((cell.Position.x == selected.Position.x - 1) && (cell.Position.y == selected.Position.y)//control stanga
-                || (cell.Position.x == selected.Position.x + 1) && (cell.Position.y == selected.Position.y)//control dreapta
-                || (cell.Position.x == selected.Position.x) && (cell.Position.y == selected.Position.y - 1)//control jos
-                || (cell.Position.x == selected.Position.x) && (cell.Position.y == selected.Position.y + 1))//control sus
-            {
-                Destroy(cell.GetComponent<Image>());
-                Destroy(selected.GetComponent<Image>());
-                selected = null;
-                return;
-            }
-            else
-            {
-                Debug.LogError("cells not in range");
-                selected = null;
+                _selectedCell.Highlight(false);
+                _selectedCell = null;
+                Debug.Log("<color=red>id not match or you selected the same cell</color>");
                 return;
             }
 
+            _selectedCell.Active = false;
+            StartCoroutine(DFS.SearchVisual(_map, _selectedCell, line, cell));
+            bool found = DFS.Search(_map, _selectedCell, cell);
+            _selectedCell.Active = true;
+            Debug.Log($"Search returned {found}");
+            if (found)
+            {
+                ResetCells(cell);
+            }
+            _selectedCell = null;
         }
-        
+    }
+    
+    private void ResetCells(Cell cell)
+    {
+      
+        cell.Active = false;
+        _selectedCell.Active = false;
+        _selectedCell.Highlight(false);
+        _selectedCell.GetComponent<Image>().color = new Color(1, 1, 1);
+        cell.GetComponent<Image>().color = new Color(1, 1, 1);
+        _selectedCell = null;
     }
 
     void Start()
     {
+        _dfs = new DFS();
         Randomize();
         Shuffle();
         Map();
-        Debug.Log(_map.Count);
+//        Debug.Log(_map.Count);
         InitializeCells();    
     }
 
@@ -81,18 +103,19 @@ public class GameLogic : MonoBehaviour
     private void InitializeCells()
     {
         var index = 0;
-        for (var row = 0; row < _map.Count; row++)
+        for (var row = 0; row < _listMap.Count; row++)
         {
 
-            for (var column = 0; column < _map[0].Count; column++)
+            for (var column = 0; column < _listMap[0].Count; column++)
             {
-                var current = _map[row][column];
+                var current = _listMap[row][column];
                 current.ID = _values[index];
-                current.Position = new Vector2(row, column);
-                gridView.ColorCell(current.ID, cells[index].GetComponent<Image>());
+                current.Position = new Vector2Int(row, column);
+                current.Setup(gridView.ColorCell(current.ID));
                 Cell cell = cells[index];
                
                 gridView.SetXYText(cell, row, column);
+                _map.Add(current.Position, current);
                 index++;
             }
 
@@ -123,7 +146,7 @@ public class GameLogic : MonoBehaviour
 
     private void Map()
     {
-       _map = new List<List<Cell>>();
+       _listMap = new List<List<Cell>>();
         var index = 0;
 
         for(var row = 0; row < 7; row++)
@@ -131,12 +154,13 @@ public class GameLogic : MonoBehaviour
             var col = new List<Cell>();
             for (var column = 0; column < 20; column++)
             {
-                
                 col.Add(cells[index]);
                 index++;
+                
             }
-            _map.Add(col);
+            _listMap.Add(col);
 
         }
     }
+
 }

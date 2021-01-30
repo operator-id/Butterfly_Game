@@ -5,11 +5,14 @@ using UnityEngine.UI;
 
 public class GridView : MonoBehaviour
 {
+    [SerializeField] private Material highlight;
     [SerializeField] List<Color> colors;
 
-    public void ColorCell(int colorNumber, Image image)
+    public Material Highlight => highlight;
+
+    public Color ColorCell(int colorNumber)
     {
-       image.color = colors[colorNumber];
+        return colors[colorNumber];
     }
     public void SetXYText(Cell cell, int x, int y)
     {
