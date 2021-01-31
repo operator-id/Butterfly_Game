@@ -39,7 +39,7 @@ public class GameLogic : MonoBehaviour
     }
 
     private Cell _selectedCell;
-    private DFS _dfs;
+    private SearchAlgorithms _searchAlgorithms;
 
     public void SelectCell(Cell cell)
     {
@@ -65,8 +65,10 @@ public class GameLogic : MonoBehaviour
             }
 
             _selectedCell.Active = false;
-            StartCoroutine(DFS.SearchVisual(_map, _selectedCell, line, cell));
-            bool found = DFS.Search(_map, _selectedCell, cell);
+            //StartCoroutine(SearchAlgorithms.DFSVisual(_map, _selectedCell, line, cell));
+            StartCoroutine(SearchAlgorithms.CircularSearchVisual(_map, _selectedCell, line, cell));
+            //bool found = SearchAlgorithms.DFS(_map, _selectedCell, cell);
+            bool found = SearchAlgorithms.CircularSearch(_map, _selectedCell, cell);
             _selectedCell.Active = true;
             Debug.Log($"Search returned {found}");
             if (found)
@@ -90,7 +92,7 @@ public class GameLogic : MonoBehaviour
 
     void Start()
     {
-        _dfs = new DFS();
+        _searchAlgorithms = new SearchAlgorithms();
         Randomize();
         Shuffle();
         Map();

@@ -12252,7 +12252,7 @@ MonoBehaviour:
   - {fileID: 1743181451}
   - {fileID: 757079697}
   - {fileID: 2074085199}
-  simulationSpeed: 0.2
+  simulationSpeed: 0.33
   line: {fileID: 20548361}
 --- !u!4 &1122670296
 Transform:
