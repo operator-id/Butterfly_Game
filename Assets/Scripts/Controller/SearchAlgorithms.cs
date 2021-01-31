@@ -5,8 +5,10 @@ using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class SearchAlgorithms 
+public class SearchAlgorithms
 {
+    private const int GridWidth = 20;
+    private const int GridHeight = 7;
     public static IEnumerator DFSVisual(Dictionary<Vector2Int, Cell> map, Cell start, LineRenderer line, Cell searchedCell)
     {
         var visited = new HashSet<Cell>();
@@ -18,6 +20,7 @@ public class SearchAlgorithms
         //start.Active = false;
         int index = 0;
         line.positionCount = 0;
+        bool checkedBorders = false;
         while (stack.Count > 0)
         {
             var cell = stack.Pop(); // start
@@ -31,11 +34,17 @@ public class SearchAlgorithms
 
             yield return new WaitForSeconds(GameLogic.Instance.SimulationSpeed);
 
+            if (!checkedBorders && CellHasExitToBorders(map, cell))
+            {
+              CheckIfInactiveCellAtBorders(map, searchedCell, stack, null) ;
+              checkedBorders = true;
+            }
             cell.Visit(false);
             line.positionCount++;
             line.SetPosition(index, cell.transform.position);
             index++;
-            if (CheckActiveNeighbours(map, cell, searchedCell, true)) yield break;
+            if (FoundMatchingCell(map, cell, searchedCell, true)) yield break;
+            
             
             CheckInactiveNeighbours(map, cell, visited, stack, null);
         }
@@ -48,7 +57,7 @@ public class SearchAlgorithms
             var stack = new Stack<Cell>();
     
             stack.Push(start);
-
+            bool checkedBorders = false;
             while (stack.Count > 0)
             {
                 var cell = stack.Pop(); // start
@@ -57,7 +66,12 @@ public class SearchAlgorithms
                 {
                     continue;
                 }
-                if (CheckActiveNeighbours(map, cell, searchedCell)) return true;
+                if (!checkedBorders && CellHasExitToBorders(map, cell))
+                {
+                    if (CheckIfInactiveCellAtBorders(map, searchedCell, stack, null)) return true;
+                    checkedBorders = true;
+                }
+                if (FoundMatchingCell(map, cell, searchedCell)) return true;
                 visited.Add(cell);
                 
                 CheckInactiveNeighbours(map, cell, visited, stack, null);
@@ -77,6 +91,7 @@ public class SearchAlgorithms
             //start.Active = false;
             int index = 0;
             line.positionCount = 0;
+            bool checkedBorders = false;
             while (queue.Count > 0)
             {
                 var cell = queue.Dequeue(); // start
@@ -90,11 +105,16 @@ public class SearchAlgorithms
 
                 yield return new WaitForSeconds(GameLogic.Instance.SimulationSpeed);
 
+                if (!checkedBorders && CellHasExitToBorders(map, cell))
+                {
+                    CheckIfInactiveCellAtBorders(map, searchedCell, null, queue);
+                    checkedBorders = true;
+                }
                 cell.Visit(false);
                 line.positionCount++;
                 line.SetPosition(index, cell.transform.position);
                 index++;
-                if (CheckActiveNeighbours(map, cell, searchedCell, true)) yield break;
+                if (FoundMatchingCell(map, cell, searchedCell, true)) yield break;
             
                 CheckInactiveNeighbours(map, cell, visited, null, queue);
             }
@@ -107,15 +127,24 @@ public class SearchAlgorithms
     
             queue.Enqueue(start);
 
+            bool checkedBorders = false;
             while (queue.Count > 0)
             {
+               
                 var cell = queue.Dequeue(); // start
     
                 if (visited.Contains(cell))
                 {
                     continue;
                 }
-                if (CheckActiveNeighbours(map, cell, searchedCell)) return true;
+
+                if (!checkedBorders && CellHasExitToBorders(map, cell))
+                {
+                    if (CheckIfInactiveCellAtBorders(map, searchedCell, null, queue)) return true;
+                    checkedBorders = true;
+                }
+                
+                if (FoundMatchingCell(map, cell, searchedCell)) return true;
                 visited.Add(cell);
                 
                 CheckInactiveNeighbours(map, cell, visited, null, queue);
@@ -125,7 +154,7 @@ public class SearchAlgorithms
         }
 
 
-        private static bool CheckActiveNeighbours(Dictionary<Vector2Int, Cell> map, Cell cell, Cell searchedCell, bool highlight = false)
+        private static bool FoundMatchingCell(Dictionary<Vector2Int, Cell> map, Cell cell, Cell searchedCell, bool highlight = false)
         {
             var coordinates = ExtractPosition2Coordinates(cell);
 
@@ -146,7 +175,7 @@ public class SearchAlgorithms
         }
         
         private static void CheckInactiveNeighbours(Dictionary<Vector2Int, Cell> map,
-            Cell cell, ICollection<Cell> structureToCompareVisited,[CanBeNull] Stack<Cell> stack, [CanBeNull] Queue<Cell> queue)
+            Cell cell, ICollection<Cell> visitedCollection,[CanBeNull] Stack<Cell> stack, [CanBeNull] Queue<Cell> queue)
         {
             var coordinates = ExtractPosition2Coordinates(cell);
 
@@ -157,7 +186,7 @@ public class SearchAlgorithms
                 var currentCell = map[coordinate];
                 if(currentCell.Active) continue;
 
-                if (structureToCompareVisited.Contains(currentCell)) continue;
+                if (visitedCollection.Contains(currentCell)) continue;
 
                 stack?.Push(currentCell);
                 queue?.Enqueue(currentCell);
@@ -175,5 +204,68 @@ public class SearchAlgorithms
 
             var coordinates = new List<Vector2Int> {up, down, left, right};
             return coordinates;
+        }
+
+        private static bool CheckIfInactiveCellAtBorders(Dictionary<Vector2Int, Cell> map, Cell searchedCell, [CanBeNull] Stack<Cell> stack, [CanBeNull] Queue<Cell> queue)
+        {
+            
+
+            bool FoundBorderCell(int index, int edge,  bool vertical = false)
+            {
+                var row = vertical ? new Vector2Int( index , edge) : new Vector2Int(edge, index);
+                if (map[row] == searchedCell)
+                {
+                    return true;
+                }
+
+                if (!map[row].Active)
+                {
+
+                    stack?.Push(map[row]);
+                    queue?.Enqueue(map[row]);
+                }
+
+                return false;
+            }
+            
+            int currentEdge = 0;
+            for (int i = 0; i < GridWidth; i++)
+            {
+                if (FoundBorderCell(i, currentEdge)) return true;
+            }
+
+            currentEdge = GridHeight - 1;
+            
+            for (int i = 0; i < GridWidth; i++)
+            {
+                if (FoundBorderCell(i, currentEdge)) return true;
+            }
+
+            currentEdge = 0;
+            for (int i = 0; i < GridHeight; i++)
+            {
+                if (FoundBorderCell(i, currentEdge, true)) return true;
+            }
+
+            currentEdge = GridWidth - 1;
+            
+            for (int i = 0; i < GridHeight; i++)
+            {
+                if (FoundBorderCell(i, currentEdge, true)) return true;
+            }
+
+            return false;
+        }
+
+        private static bool CellHasExitToBorders(Dictionary<Vector2Int, Cell> map, Cell cell)
+        {
+            var coordinates = ExtractPosition2Coordinates(cell);
+
+            foreach (var coordinate in coordinates)
+            {
+                if (!map.ContainsKey(coordinate)) return true;
+            }
+
+            return false;
         }
 }

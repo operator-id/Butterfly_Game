@@ -12254,6 +12254,7 @@ MonoBehaviour:
   - {fileID: 2074085199}
   simulationSpeed: 0.33
   line: {fileID: 20548361}
+  howToSearch: 1
 --- !u!4 &1122670296
 Transform:
   m_ObjectHideFlags: 0

@@ -15,6 +15,11 @@ public class GameLogic : MonoBehaviour
     
 
     [SerializeField] private LineRenderer line;
+    [Space] 
+    [SerializeField] private SearchType howToSearch;
+    
+    public int GridWidth { get; set; }
+    public int GridHeight { get; set; }
 
     private List<int> _values = new List<int>();
     private List<List<Cell>> _listMap;
@@ -39,8 +44,18 @@ public class GameLogic : MonoBehaviour
     }
 
     private Cell _selectedCell;
-    private SearchAlgorithms _searchAlgorithms;
 
+    private void Start()
+    {
+        Randomize();
+        Shuffle();
+        Map();
+        InitializeCells();
+        GridWidth = _listMap[0].Count;
+        GridHeight = _listMap.Count;
+
+    }
+    
     public void SelectCell(Cell cell)
     {
 
@@ -65,10 +80,23 @@ public class GameLogic : MonoBehaviour
             }
 
             _selectedCell.Active = false;
-            //StartCoroutine(SearchAlgorithms.DFSVisual(_map, _selectedCell, line, cell));
-            StartCoroutine(SearchAlgorithms.CircularSearchVisual(_map, _selectedCell, line, cell));
-            //bool found = SearchAlgorithms.DFS(_map, _selectedCell, cell);
-            bool found = SearchAlgorithms.CircularSearch(_map, _selectedCell, cell);
+            bool found = false;
+            switch (howToSearch)
+            {
+                case SearchType.Circular:
+                {
+                    StartCoroutine(SearchAlgorithms.CircularSearchVisual(_map, _selectedCell, line, cell));
+                    found = SearchAlgorithms.CircularSearch(_map, _selectedCell, cell);
+                    break;
+                }
+                case SearchType.DFS:
+                {
+                    StartCoroutine(SearchAlgorithms.DFSVisual(_map, _selectedCell, line, cell));
+                    found = SearchAlgorithms.DFS(_map, _selectedCell, cell);
+                    break;
+                    
+                }
+            }
             _selectedCell.Active = true;
             Debug.Log($"Search returned {found}");
             if (found)
@@ -89,17 +117,6 @@ public class GameLogic : MonoBehaviour
         cell.GetComponent<Image>().color = new Color(1, 1, 1);
         _selectedCell = null;
     }
-
-    void Start()
-    {
-        _searchAlgorithms = new SearchAlgorithms();
-        Randomize();
-        Shuffle();
-        Map();
-//        Debug.Log(_map.Count);
-        InitializeCells();    
-    }
-
 
 
     private void InitializeCells()
