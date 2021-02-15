@@ -5,18 +5,22 @@ using UnityEngine.UI;
 
 public class GameLogic : MonoBehaviour
 {
+    [SerializeField] private int shuffleCount = 10;
+    [Space]
     [SerializeField] private int distinctButterflies = 7;
     [SerializeField] private int cellNumber = 140;
     [SerializeField] private GridView gridView;
     [Space]
-    [SerializeField] List<Cell> cells;
-
+    [SerializeField] private List<Cell> cells;
     [SerializeField] private float simulationSpeed = .2f;
     
-
-    [SerializeField] private LineRenderer line;
     [Space] 
     [SerializeField] private SearchType howToSearch;
+
+    [Header("Optional for visuals")]
+    [SerializeField] private bool showVisuals;
+    [SerializeField] private LineRenderer line;
+    
     
     public int GridWidth { get; set; }
     public int GridHeight { get; set; }
@@ -48,7 +52,11 @@ public class GameLogic : MonoBehaviour
     private void Start()
     {
         Randomize();
-        Shuffle();
+        for (int i = 0; i < shuffleCount; i++)
+        {
+            Shuffle();
+        }
+        
         Map();
         InitializeCells();
         GridWidth = _listMap[0].Count;
@@ -58,19 +66,14 @@ public class GameLogic : MonoBehaviour
     
     public void SelectCell(Cell cell)
     {
-
-        //Debug.Log(cell.ID);
         if (_selectedCell == null)
         {
             _selectedCell = cell;
             _selectedCell.Highlight(true);
-            //Debug.Log($"Selected x[{_selectedCell.Position.x}],y[{_selectedCell.Position.y}] ");
+
         }
         else
         {
-            //Debug.Log($"Selected x[{_selectedCell.Position.x}],y[{_selectedCell.Position.y}] ");
-            //Debug.Log($"Cell x[{cell.Position.x}],y[{cell.Position.y}] ");
-            
             if (cell == _selectedCell || cell.ID != _selectedCell.ID)
             {
                 _selectedCell.Highlight(false);
@@ -85,14 +88,18 @@ public class GameLogic : MonoBehaviour
             {
                 case SearchType.Circular:
                 {
-                    StartCoroutine(SearchAlgorithms.CircularSearchVisual(_map, _selectedCell, line, cell));
                     found = SearchAlgorithms.CircularSearch(_map, _selectedCell, cell);
+                    
+                    if(!showVisuals) break;
+                    StartCoroutine(SearchAlgorithms.CircularSearchVisual(_map, _selectedCell, line, cell));
                     break;
                 }
                 case SearchType.DFS:
                 {
-                    StartCoroutine(SearchAlgorithms.DFSVisual(_map, _selectedCell, line, cell));
                     found = SearchAlgorithms.DFS(_map, _selectedCell, cell);
+                    
+                    if(!showVisuals) break;
+                    StartCoroutine(SearchAlgorithms.DFSVisual(_map, _selectedCell, line, cell));
                     break;
                     
                 }
@@ -109,12 +116,8 @@ public class GameLogic : MonoBehaviour
     
     private void ResetCells(Cell cell)
     {
-      
-        cell.Active = false;
-        _selectedCell.Active = false;
-        _selectedCell.Highlight(false);
-        _selectedCell.GetComponent<Image>().color = new Color(1, 1, 1);
-        cell.GetComponent<Image>().color = new Color(1, 1, 1);
+        cell.OnMatch();
+        _selectedCell.OnMatch();
         _selectedCell = null;
     }
 
@@ -130,10 +133,10 @@ public class GameLogic : MonoBehaviour
                 var current = _listMap[row][column];
                 current.ID = _values[index];
                 current.Position = new Vector2Int(row, column);
-                current.Setup(gridView.ColorCell(current.ID));
-                Cell cell = cells[index];
-               
-                gridView.SetXYText(cell, row, column);
+                current.Setup(gridView.GetButterflySprite(current.ID));
+                
+                // Cell cell = cells[index];
+                //gridView.SetXYText(cell, row, column);
                 _map.Add(current.Position, current);
                 index++;
             }

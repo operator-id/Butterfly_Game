@@ -7,6 +7,11 @@ using UnityEngine.UI;
 
 public class Cell : MonoBehaviour, IPointerClickHandler
 {
+    [SerializeField] private Image childImage;
+    [SerializeField] private Image parentImage;
+
+    public Image ChildImage => childImage;
+
     public int ID { get; set; }
     public bool Active { get; set; } = true;
 
@@ -17,17 +22,27 @@ public class Cell : MonoBehaviour, IPointerClickHandler
     private void Start()
     {
         _defaultMaterial = GetComponent<Image>().material;
+        _defaultColor = parentImage.color;
     }
 
-    public void Setup(Color color)
+    
+    public void Setup(Sprite sprite)
     {
-        _defaultColor = color;
-        GetComponent<Image>().color = color;
+        childImage.sprite = sprite;
+        //parentImage.color = color;
     }
     public void OnPointerClick(PointerEventData eventData)
     {
         if(!Active) return;
         GameLogic.Instance.SelectCell(this);
+    }
+
+    public void OnMatch()
+    {
+        Highlight(false);
+        Active = false;
+        parentImage.color = Color.white;
+        childImage.enabled = false;
     }
 
     public void Highlight(bool isActive)
@@ -42,10 +57,10 @@ public class Cell : MonoBehaviour, IPointerClickHandler
 
     private IEnumerator VisitCoroutine(bool justChecking)
     {
-        GetComponent<Image>().color = justChecking ? new Color(1f, .9f, .1f, 1f) : new Color(0, 0, 0);
+        parentImage.color = justChecking ? new Color(1f, .9f, .1f, 1f) : new Color(0, 0, 0);
         //GetComponent<Image>().color = new Color(0, 0, 0);
         yield return new WaitForSeconds(GameLogic.Instance.SimulationSpeed);
         
-        GetComponent<Image>().color = Active ? _defaultColor : new Color(1, 1, 1);
+        parentImage.color = Active ? _defaultColor : new Color(1, 1, 1);
     }
 }
